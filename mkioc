@@ -1,0 +1,106 @@
+#!/bin/bash
+
+TOKEN=`git config --global --get gitlab.token`
+
+if [[ $TOKEN = "error:"* ]] ; then
+	echo "Gitlab token not found, run git config --global gitlab.token \"<TOKEN>\""
+	exit
+fi
+
+IOC_NAME=$1
+LOW_CASE=$1
+
+declare -l LOW_CASE
+LOW_CASE=$LOW_CASE
+
+#Grab the sector name
+if [[ $IOC_NAME =~ ([0-9]+)(id|bm) ]] ; then
+	SECTOR_NUM=${BASH_REMATCH[1]}
+	SECTOR_TAG=${BASH_REMATCH[2]}
+	GROUP_NAME=${SECTOR_NUM}${SECTOR_TAG}
+else
+	echo "IOC name not of format ##(id|bm)Name"
+	exit
+fi
+
+#Set default synApps version
+SYNAPPS_VERSION="6-0"
+
+#Check if user set their own
+if [ "$#" -ge 2 ] ; then
+	SYNAPPS_VERSION=$2
+fi
+
+#Allow both dash as well as underscores
+SYNAPPS_VERSION=${SYNAPPS_VERSION//_/-}
+
+#Remove leading R if user used github tag format
+SYNAPPS_VERSION=${SYNAPPS_VERSION//R/}
+
+SYNAPPS_LOCATION="/APSshare/epics/synApps_${SYNAPPS_VERSION//-/_}"
+	
+if [ ! -d $SYNAPPS_LOCATION ] ; then
+	echo "Cannot find synApps version with tag: ${SYNAPPS_VERSION}"
+	exit
+fi
+
+#Check if ioc prefix exists as group on gitlab
+GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v3/groups/${GROUP_NAME}?private_token=${TOKEN}`
+
+if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
+	echo "No gitlab group found for Group: ${GROUP_NAME}"
+	echo "Would you like to create group?"
+	
+	read RESPONSE
+	
+	#If yes, create group
+	if [[ $RESPONSE =~ [Yy](es)* ]] ; then
+	
+		#Pretty print sector name
+		declare -u SECTOR_TAG
+		SECTOR_TAG=$SECTOR_TAG
+		
+		PPRINT=${SECTOR_NUM}-${SECTOR_TAG}
+		
+		GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v3/groups?private_token=${TOKEN} -d "{ \"name\": \"${GROUP_NAME}\", \"path\": \"${GROUP_NAME}\", \"description\": \"Sector ${PPRINT}'s IOC's and other projects\", \"visibility_level\": 10 }"`
+	fi
+	
+	#Then check regex again, if no to previous question, this will also exit
+	if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
+		exit
+	fi
+fi
+
+#Extract ID
+GROUP_ID=${BASH_REMATCH[1]}
+
+if [[ -d "$IOC_NAME" ]] ; then
+	echo "Directory already exists"
+	exit
+fi
+
+mkdir "$IOC_NAME"
+cd "$IOC_NAME"
+
+git init
+git remote add xxx git@github.com:epics-modules/xxx.git
+git fetch xxx
+git fetch xxx --tags
+git checkout R${SYNAPPS_VERSION}
+
+git branch master
+git checkout master
+
+${SYNAPPS_LOCATION}/support/utils/changePrefix xxx $IOC_NAME
+
+sed -i -e "s|SUPPORT=.*\$|SUPPORT=${SYNAPPS_LOCATION}/support|g" configure/RELEASE
+
+git add ${IOC_NAME}App
+git add --ignore-removal iocBoot/*
+git commit -a -m "setup"
+
+#Create repository on gitlab
+curl -H "Content-Type:application/json" https://git.aps.anl.gov/api/v3/projects?private_token=${TOKEN} -d "{ \"name\": \"$IOC_NAME\", \"namespace_id\": ${GROUP_ID}, \"visibility_level\": 10 }"
+
+git remote add gitlab git@git.aps.anl.gov:${GROUP_NAME}/${LOW_CASE}.git
+git push --set-upstream gitlab master
