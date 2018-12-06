@@ -100,7 +100,7 @@ git add --ignore-removal iocBoot/*
 git commit -a -m "setup"
 
 #Create repository on gitlab
-curl -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects?private_token=${TOKEN} -d "{ \"name\": \"$IOC_NAME\", \"namespace_id\": ${GROUP_ID}, \"visibility_level\": 10 }"
+curl -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects?private_token=${TOKEN} -d "{ \"name\": \"$IOC_NAME\", \"namespace_id\": ${GROUP_ID}, \"visibility\": \"internal\" }"
 
 git remote add gitlab git@git.aps.anl.gov:${GROUP_NAME}/${LOW_CASE}.git
 git push --set-upstream gitlab master
