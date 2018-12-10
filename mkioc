@@ -97,7 +97,8 @@ sed -i -e "s|SUPPORT=.*\$|SUPPORT=${SYNAPPS_LOCATION}/support|g" configure/RELEA
 
 git add ${IOC_NAME}App
 git add --ignore-removal iocBoot/*
-git commit -a -m "setup"
+git add --all :/
+git commit -m "setup"
 
 #Create repository on gitlab
 curl -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects?private_token=${TOKEN} -d "{ \"name\": \"$IOC_NAME\", \"namespace_id\": ${GROUP_ID}, \"visibility\": \"internal\" }"
