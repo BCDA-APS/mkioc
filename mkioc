@@ -25,6 +25,7 @@ fi
 
 #Set default synApps version
 SYNAPPS_VERSION="6-0"
+XXX_VERSION="master"
 
 #Check if user set their own
 if [ "$#" -ge 2 ] ; then
@@ -42,6 +43,11 @@ SYNAPPS_LOCATION="/APSshare/epics/synApps_${SYNAPPS_VERSION//-/_}"
 if [ ! -d $SYNAPPS_LOCATION ] ; then
 	echo "Cannot find synApps version with tag: ${SYNAPPS_VERSION}"
 	exit
+fi
+
+#If synapps is set, don't use master branch
+if [ "$#" -ge 2 ] ; then
+	XXX_VERSION=R$SYNAPPS_VERSION
 fi
 
 #Check if ioc prefix exists as group on gitlab
@@ -83,10 +89,10 @@ mkdir "$IOC_NAME"
 cd "$IOC_NAME"
 
 git init
-git remote add xxx git@github.com:epics-modules/xxx.git
+git remote add git@github.com:epics-modules/xxx.git
 git fetch xxx
 git fetch xxx --tags
-git checkout R${SYNAPPS_VERSION}
+git checkout ${XXX_VERSION}
 
 git branch master
 git checkout master
