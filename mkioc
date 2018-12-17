@@ -89,7 +89,7 @@ mkdir "$IOC_NAME"
 cd "$IOC_NAME"
 
 git init
-git remote add xxx git@github.com:epics-modules/xxx.git
+git remote add xxx git://github.com:epics-modules/xxx.git
 git fetch xxx
 git fetch xxx --tags
 git checkout ${XXX_VERSION}
