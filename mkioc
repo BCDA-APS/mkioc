@@ -94,6 +94,7 @@ git fetch xxx
 git fetch xxx --tags
 git checkout ${XXX_VERSION}
 
+git branch -d master
 git branch master
 git checkout master
 
@@ -106,8 +107,20 @@ git add --ignore-removal iocBoot/*
 git add --all :/
 git commit -m "setup"
 
-#Create repository on gitlab
-curl -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects?private_token=${TOKEN} -d "{ \"name\": \"$IOC_NAME\", \"namespace_id\": ${GROUP_ID}, \"visibility\": \"internal\" }"
+#Create repository on gitlab if it doesn't exist
+REPO_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects/${GROUP_NAME}%2F${IOC_NAME}?private_token=${TOKEN}`
+
+if [[ ! $REPO_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
+	curl -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects?private_token=${TOKEN} -d "{ \"name\": \"$IOC_NAME\", \"namespace_id\": ${GROUP_ID}, \"visibility\": \"internal\" }"
+else
+	echo "Gitlab project already exists, overwrite?"
+	
+	read REPONSE
+	
+	if [[ $RESPONSE =~ [Nn](o)* ]] ; then
+		exit
+	fi
+fi
 
 git remote add gitlab git@git.aps.anl.gov:${GROUP_NAME}/${LOW_CASE}.git
 git push --set-upstream gitlab master
