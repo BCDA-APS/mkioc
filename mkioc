@@ -89,14 +89,19 @@ mkdir "$IOC_NAME"
 cd "$IOC_NAME"
 
 git init
-git remote add xxx git://github.com:epics-modules/xxx.git
+git remote add xxx git://github.com/epics-modules/xxx.git
 git fetch xxx
 git fetch xxx --tags
 git checkout ${XXX_VERSION}
 
+git branch temp
+git checkout temp
+
 git branch -d master
 git branch master
 git checkout master
+
+git branch -d temp
 
 ${SYNAPPS_LOCATION}/support/utils/changePrefix xxx $IOC_NAME
 
@@ -115,7 +120,7 @@ if [[ ! $REPO_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
 else
 	echo "Gitlab project already exists, overwrite?"
 	
-	read REPONSE
+	read RESPONSE
 	
 	if [[ $RESPONSE =~ [Nn](o)* ]] ; then
 		exit
