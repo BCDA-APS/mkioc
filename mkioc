@@ -25,7 +25,6 @@ fi
 
 #Set default synApps version
 SYNAPPS_VERSION="6-0"
-XXX_VERSION="master"
 
 #Check if user set their own
 if [ "$#" -ge 2 ] ; then
@@ -45,10 +44,7 @@ if [ ! -d $SYNAPPS_LOCATION ] ; then
 	exit
 fi
 
-#If synapps is set, don't use master branch
-if [ "$#" -ge 2 ] ; then
-	XXX_VERSION=R$SYNAPPS_VERSION
-fi
+XXX_VERSION=R$SYNAPPS_VERSION
 
 #Check if ioc prefix exists as group on gitlab
 GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/groups/${GROUP_NAME}?private_token=${TOKEN}`
