@@ -85,10 +85,10 @@ mkdir "$IOC_NAME"
 cd "$IOC_NAME"
 
 git init
-git remote add xxx git://github.com/epics-modules/xxx.git
+git remote add xxx git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}
 git fetch xxx
 git fetch xxx --tags
-git checkout ${XXX_VERSION}
+git checkout master
 
 git branch temp
 git checkout temp
