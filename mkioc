@@ -24,7 +24,7 @@ else
 fi
 
 #Set default synApps version
-SYNAPPS_VERSION="6-0"
+SYNAPPS_VERSION="6-1"
 
 #Check if user set their own
 if [ "$#" -ge 2 ] ; then
