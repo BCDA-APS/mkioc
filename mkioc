@@ -90,14 +90,7 @@ git fetch xxx
 git fetch xxx --tags
 git checkout master
 
-git branch temp
-git checkout temp
-
-git branch -d master
-git branch master
-git checkout master
-
-git branch -d temp
+git branch --unset-upstream
 
 ${SYNAPPS_LOCATION}/support/utils/changePrefix xxx $IOC_NAME
 
