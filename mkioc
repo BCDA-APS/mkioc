@@ -38,7 +38,7 @@ SYNAPPS_VERSION=${SYNAPPS_VERSION//_/-}
 SYNAPPS_VERSION=${SYNAPPS_VERSION//R/}
 
 SYNAPPS_LOCATION="/APSshare/epics/synApps_${SYNAPPS_VERSION//-/_}"
-	
+
 if [ ! -d $SYNAPPS_LOCATION ] ; then
 	echo "Cannot find synApps version with tag: ${SYNAPPS_VERSION}"
 	exit
@@ -51,24 +51,14 @@ GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.ap
 
 if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
 	echo "No gitlab group found for Group: ${GROUP_NAME}"
-	echo "Would you like to create group?"
-	
+	echo "Enter an alternate gitlab group: "
+
 	read RESPONSE
-	
-	#If yes, create group
-	if [[ $RESPONSE =~ [Yy](es)* ]] ; then
-	
-		#Pretty print sector name
-		declare -u SECTOR_TAG
-		SECTOR_TAG=$SECTOR_TAG
-		
-		PPRINT=${SECTOR_NUM}-${SECTOR_TAG}
-		
-		GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/groups?private_token=${TOKEN} -d "{ \"name\": \"${GROUP_NAME}\", \"path\": \"${GROUP_NAME}\", \"description\": \"Sector ${PPRINT}'s IOC's and other projects\", \"visibility\": \"internal\" }"`
-	fi
-	
-	#Then check regex again, if no to previous question, this will also exit
-	if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
+
+  GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/groups/${RESPONSE}?private_token=${TOKEN}`
+
+  if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
+    echo "Group ${RESPONSE} not found"
 		exit
 	fi
 fi
@@ -108,9 +98,9 @@ if [[ ! $REPO_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
 	curl -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects?private_token=${TOKEN} -d "{ \"name\": \"$IOC_NAME\", \"namespace_id\": ${GROUP_ID}, \"visibility\": \"internal\" }"
 else
 	echo "Gitlab project already exists, overwrite?"
-	
+
 	read RESPONSE
-	
+
 	if [[ $RESPONSE =~ [Nn](o)* ]] ; then
 		exit
 	fi
