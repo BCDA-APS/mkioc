@@ -57,16 +57,20 @@ if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
 	
 	read RESPONSE
 	
-			#If yes, create group
+	#If yes, create group
 	if [[ $RESPONSE =~ [Yy](es)* ]] ; then
 	
+		if [ -n "${SECTOR_NUM:+1}" ]; then
 			#Pretty print sector name
-		declare -u SECTOR_TAG
-		SECTOR_TAG=$SECTOR_TAG
+			declare -u SECTOR_TAG
+			SECTOR_TAG=$SECTOR_TAG
 		
-				PPRINT=${SECTOR_NUM}-${SECTOR_TAG}
-		
-						GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/groups?private_token=${TOKEN} -d "{ \"name\": \"${GROUP_NAME}\", \"path\": \"${GROUP_NAME}\", \"description\": \"Sector ${PPRINT}'s IOC's and other projects\", \"visibility\": \"internal\" }"`
+			PPRINT=${SECTOR_NUM}-${SECTOR_TAG}
+		else
+			PPRINT=${GROUP_NAME}
+		fi
+			
+		GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/groups?private_token=${TOKEN} -d "{ \"name\": \"${GROUP_NAME}\", \"path\": \"${GROUP_NAME}\", \"description\": \"${PPRINT}'s IOC's and other projects\", \"visibility\": \"internal\" }"`
 	fi
 	
 		#Then check regex again, if no to previous question, this will also exit
