@@ -19,8 +19,10 @@ if [[ $IOC_NAME =~ ([0-9]+)(id|bm) ]] ; then
 	SECTOR_TAG=${BASH_REMATCH[2]}
 	GROUP_NAME=${SECTOR_NUM}${SECTOR_TAG}
 else
-	echo "IOC name not of format ##(id|bm)Name"
-	exit
+	echo "IOC name not of format ##[id/bm]name"
+	echo "Enter the name of the gitlab group that this ioc will be under: "
+	
+	read GROUP_NAME
 fi
 
 #Set default synApps version
@@ -51,14 +53,24 @@ GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.ap
 
 if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
 	echo "No gitlab group found for Group: ${GROUP_NAME}"
-	echo "Enter an alternate gitlab group: "
-
+	echo "Would you like to create group?"
+	
 	read RESPONSE
-
-  GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/groups/${RESPONSE}?private_token=${TOKEN}`
-
-  if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
-    echo "Group ${RESPONSE} not found"
+	
+			#If yes, create group
+	if [[ $RESPONSE =~ [Yy](es)* ]] ; then
+	
+			#Pretty print sector name
+		declare -u SECTOR_TAG
+		SECTOR_TAG=$SECTOR_TAG
+		
+				PPRINT=${SECTOR_NUM}-${SECTOR_TAG}
+		
+						GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/groups?private_token=${TOKEN} -d "{ \"name\": \"${GROUP_NAME}\", \"path\": \"${GROUP_NAME}\", \"description\": \"Sector ${PPRINT}'s IOC's and other projects\", \"visibility\": \"internal\" }"`
+	fi
+	
+		#Then check regex again, if no to previous question, this will also exit
+	if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
 		exit
 	fi
 fi
