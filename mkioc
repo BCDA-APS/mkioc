@@ -1,37 +1,72 @@
 #!/bin/bash
 
-TOKEN=`git config --global --get gitlab.token`
+VERSION="0.1.0"
 
-if [[ $TOKEN = "error:"* ]] ; then
-	echo "Gitlab token not found, run git config --global gitlab.token \"<TOKEN>\""
-	exit
+# Default synApps version
+SYNAPPS_VERSION="6-1"
+# Don't push to gitlab by default
+GITLAB=0
+
+function print_help
+{
+    echo "Usage: mkioc [options] ioc_name"
+    echo ""
+    echo "-h            print this message"
+    echo "-v            print the version"
+    echo "-g            create gitlab repo and push ioc"
+    echo "-s <version>  use a specific synApps version"
+}
+
+function print_version
+{
+    echo "Version: ${VERSION}"
+}
+
+###
+### Parse command-line options
+###
+
+while getopts hvgs:n: option
+do
+    case "${option}" in
+        h)
+            print_help
+            exit 2
+        ;;
+
+        v)
+            print_version
+            exit 0
+        ;;
+
+        s)
+            SYNAPPS_VERSION=${OPTARG}
+        ;;
+
+        g)
+            GITLAB=1
+        ;;
+    esac
+done
+
+#echo "OPTIND: $OPTIND"
+#echo ${#@}
+
+shift $((OPTIND - 1 ))
+
+#echo "$SYNAPPS_VERSION, $GITLAB"
+
+if [ "${#@}" -ne 1 ]
+then
+    echo "Error: one IOC name is required"
+    exit 1
 fi
 
 IOC_NAME=$1
-LOW_CASE=$1
 
-declare -l LOW_CASE
-LOW_CASE=$LOW_CASE
-
-#Grab the sector name
-if [[ $IOC_NAME =~ ([0-9]+)(id|bm) ]] ; then
-	SECTOR_NUM=${BASH_REMATCH[1]}
-	SECTOR_TAG=${BASH_REMATCH[2]}
-	GROUP_NAME=${SECTOR_NUM}${SECTOR_TAG}
-else
-	echo "IOC name not of format ##[id/bm]name"
-	echo "Enter the name of the gitlab group that this ioc will be under: "
-	
-	read GROUP_NAME
-fi
-
-#Set default synApps version
-SYNAPPS_VERSION="6-1"
-
-#Check if user set their own
-if [ "$#" -ge 2 ] ; then
-	SYNAPPS_VERSION=$2
-fi
+###
+### Correct synApps version
+###
 
 #Allow both dash as well as underscores
 SYNAPPS_VERSION=${SYNAPPS_VERSION//_/-}
@@ -42,56 +77,97 @@ SYNAPPS_VERSION=${SYNAPPS_VERSION//R/}
 SYNAPPS_LOCATION="/APSshare/epics/synApps_${SYNAPPS_VERSION//-/_}"
 
 if [ ! -d $SYNAPPS_LOCATION ] ; then
-	echo "Cannot find synApps version with tag: ${SYNAPPS_VERSION}"
-	exit
+    echo "Cannot find synApps version with tag: ${SYNAPPS_VERSION}"
+    exit 1
 fi
 
 XXX_VERSION=R$SYNAPPS_VERSION
 
-#Check if ioc prefix exists as group on gitlab
-GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/groups/${GROUP_NAME}?private_token=${TOKEN}`
+###
+### Create gitlab repo
+###
 
-if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
-	echo "No gitlab group found for Group: ${GROUP_NAME}"
-	echo "Would you like to create group?"
-	
-	read RESPONSE
-	
-	#If yes, create group
-	if [[ $RESPONSE =~ [Yy](es)* ]] ; then
-	
-		if [ -n "${SECTOR_NUM:+1}" ]; then
-			#Pretty print sector name
-			declare -u SECTOR_TAG
-			SECTOR_TAG=$SECTOR_TAG
-		
-			PPRINT=${SECTOR_NUM}-${SECTOR_TAG}
-		else
-			PPRINT=${GROUP_NAME}
-		fi
-			
-		GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/groups?private_token=${TOKEN} -d "{ \"name\": \"${GROUP_NAME}\", \"path\": \"${GROUP_NAME}\", \"description\": \"${PPRINT}'s IOC's and other projects\", \"visibility\": \"internal\" }"`
-	fi
-	
-		#Then check regex again, if no to previous question, this will also exit
-	if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
-		exit
-	fi
+if [ "$GITLAB" -eq 1 ]
+then
+
+    TOKEN=`git config --global --get gitlab.token`
+    
+    if [[ $TOKEN = "error:"* ]] ; then
+        echo "Gitlab token not found, run git config --global gitlab.token \"<TOKEN>\""
+        exit
+    fi
+    
+    LOW_CASE=$IOC_NAME
+    
+    declare -l LOW_CASE
+    LOW_CASE=$LOW_CASE
+    
+    #Grab the sector name
+    if [[ $IOC_NAME =~ ([0-9]+)(id|bm) ]] ; then
+        SECTOR_NUM=${BASH_REMATCH[1]}
+        SECTOR_TAG=${BASH_REMATCH[2]}
+        GROUP_NAME=${SECTOR_NUM}${SECTOR_TAG}
+    else
+        echo "IOC name not of format ##[id/bm]name"
+        echo "Enter the name of the gitlab group that this ioc will be under: "
+        
+        read GROUP_NAME
+    fi
+
+    #Check if ioc prefix exists as group on gitlab
+    GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/groups/${GROUP_NAME}?private_token=${TOKEN}`
+    
+    if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
+        echo "No gitlab group found for Group: ${GROUP_NAME}"
+        echo "Would you like to create group?"
+        
+        read RESPONSE
+        
+        #If yes, create group
+        if [[ $RESPONSE =~ [Yy](es)* ]] ; then
+        
+            if [ -n "${SECTOR_NUM:+1}" ]; then
+                #Pretty print sector name
+                declare -u SECTOR_TAG
+                SECTOR_TAG=$SECTOR_TAG
+            
+                PPRINT=${SECTOR_NUM}-${SECTOR_TAG}
+            else
+                PPRINT=${GROUP_NAME}
+            fi
+                
+            GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/groups?private_token=${TOKEN} -d "{ \"name\": \"${GROUP_NAME}\", \"path\": \"${GROUP_NAME}\", \"description\": \"${PPRINT}'s IOC's and other projects\", \"visibility\": \"internal\" }"`
+        fi
+        
+            #Then check regex again, if no to previous question, this will also exit
+        if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
+            exit 1
+        fi
+    fi
+    
+    #Extract ID
+    GROUP_ID=${BASH_REMATCH[1]}
 fi
 
-#Extract ID
-GROUP_ID=${BASH_REMATCH[1]}
+
+###
+### Create the IOC
+###
 
 if [[ -d "$IOC_NAME" ]] ; then
-	echo "Directory already exists"
-	exit
+    echo "Directory already exists"
+    exit 1
 fi
 
 mkdir "$IOC_NAME"
 cd "$IOC_NAME"
 
 git init
+# ssh
 git remote add xxx git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}
+# https
+#git remote add xxx https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git
+
 git fetch xxx
 git fetch xxx --tags
 git checkout master
@@ -107,20 +183,28 @@ git add --ignore-removal iocBoot/*
 git add --all :/
 git commit -m "setup"
 
-#Create repository on gitlab if it doesn't exist
-REPO_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects/${GROUP_NAME}%2F${IOC_NAME}?private_token=${TOKEN}`
+###
+### Push to gitlab
+###
 
-if [[ ! $REPO_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
-	curl -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects?private_token=${TOKEN} -d "{ \"name\": \"$IOC_NAME\", \"namespace_id\": ${GROUP_ID}, \"visibility\": \"internal\" }"
-else
-	echo "Gitlab project already exists, overwrite?"
-
-	read RESPONSE
-
-	if [[ $RESPONSE =~ [Nn](o)* ]] ; then
-		exit
-	fi
+if [ "$GITLAB" -eq 1 ]
+then
+    #Create repository on gitlab if it doesn't exist
+    REPO_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects/${GROUP_NAME}%2F${IOC_NAME}?private_token=${TOKEN}`
+    
+    if [[ ! $REPO_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
+        curl -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects?private_token=${TOKEN} -d "{ \"name\": \"$IOC_NAME\", \"namespace_id\": ${GROUP_ID}, \"visibility\": \"internal\" }"
+    else
+        echo "Gitlab project already exists, overwrite?"
+    
+        read RESPONSE
+    
+        if [[ $RESPONSE =~ [Nn](o)* ]] ; then
+            exit
+        fi
+    fi
+    
+    git remote add gitlab git@git.aps.anl.gov:${GROUP_NAME}/${LOW_CASE}.git
+    git push --set-upstream gitlab master
 fi
 
-git remote add gitlab git@git.aps.anl.gov:${GROUP_NAME}/${LOW_CASE}.git
-git push --set-upstream gitlab master
