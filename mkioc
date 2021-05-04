@@ -4,8 +4,6 @@ VERSION="0.1.0"
 
 # Default synApps version
 SYNAPPS_VERSION="6-1"
-# Don't push to gitlab by default
-GITLAB=0
 
 function print_help
 {
@@ -13,7 +11,8 @@ function print_help
     echo ""
     echo "-h            print this message"
     echo "-v            print the version"
-    echo "-g            create gitlab repo and push ioc"
+    echo "-g            default to creating gitlab repo and pushing ioc"
+    echo "-n            default to not creating gitlab repo and pushing ioc"
     echo "-s <version>  use a specific synApps version"
 }
 
@@ -21,6 +20,9 @@ function print_version
 {
     echo "Version: ${VERSION}"
 }
+
+ASK_GITHUB = 1 
+GITHUB = 0
 
 ###
 ### Parse command-line options
@@ -44,7 +46,13 @@ do
         ;;
 
         g)
+            ASK_GITLAB=0
             GITLAB=1
+        ;;
+        
+        n)
+            ASK_GITLAB=0
+            GITLAB=0
         ;;
     esac
 done
@@ -86,6 +94,21 @@ XXX_VERSION=R$SYNAPPS_VERSION
 ###
 ### Create gitlab repo
 ###
+
+if [ "$ASK_GITLAB" -eq 1 ]
+then
+
+    echo "Would you like to link this IOC to gitlab?"
+        
+    read RESPONSE
+    
+    #If yes, set GITLAB var
+    if [[ $RESPONSE =~ [Yy](es)* ]] ; 
+    then
+        GITLAB = 1
+    fi
+    
+fi
 
 if [ "$GITLAB" -eq 1 ]
 then
