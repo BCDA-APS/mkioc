@@ -21,14 +21,14 @@ function print_version
     echo "Version: ${VERSION}"
 }
 
-ASK_GITHUB = 1 
-GITHUB = 0
+ASK_GITLAB=1 
+GITHUB=0
 
 ###
 ### Parse command-line options
 ###
 
-while getopts hvgs:n: option
+while getopts hvgns: option
 do
     case "${option}" in
         h)
@@ -95,7 +95,7 @@ XXX_VERSION=R$SYNAPPS_VERSION
 ### Create gitlab repo
 ###
 
-if [ "$ASK_GITLAB" -eq 1 ]
+if [ $ASK_GITLAB -eq 1 ]
 then
 
     echo "Would you like to link this IOC to gitlab?"
@@ -105,12 +105,12 @@ then
     #If yes, set GITLAB var
     if [[ $RESPONSE =~ [Yy](es)* ]] ; 
     then
-        GITLAB = 1
+        GITLAB=1
     fi
     
 fi
 
-if [ "$GITLAB" -eq 1 ]
+if [ $GITLAB -eq 1 ]
 then
 
     TOKEN=`git config --global --get gitlab.token`
@@ -210,7 +210,7 @@ git commit -m "setup"
 ### Push to gitlab
 ###
 
-if [ "$GITLAB" -eq 1 ]
+if [ $GITLAB -eq 1 ]
 then
     #Create repository on gitlab if it doesn't exist
     REPO_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects/${GROUP_NAME}%2F${IOC_NAME}?private_token=${TOKEN}`
