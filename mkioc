@@ -11,6 +11,7 @@ function print_help
     echo ""
     echo "-h            print this message"
     echo "-v            print the version"
+    echo "-f            create a fresh git repo without an xxx remote"
     echo "-g            default to creating gitlab repo and pushing ioc"
     echo "-n            default to not creating gitlab repo and pushing ioc"
     echo "-s <version>  use a specific synApps version"
@@ -21,6 +22,7 @@ function print_version
     echo "Version: ${VERSION}"
 }
 
+FRESH_REPO=0
 ASK_GITLAB=1 
 GITHUB=0
 
@@ -28,7 +30,7 @@ GITHUB=0
 ### Parse command-line options
 ###
 
-while getopts hvgns: option
+while getopts hvfgns: option
 do
     case "${option}" in
         h)
@@ -40,7 +42,11 @@ do
             print_version
             exit 0
         ;;
-
+        
+        f)
+            FRESH_REPO=1
+        ;;
+        
         s)
             SYNAPPS_VERSION=${OPTARG}
         ;;
@@ -107,7 +113,6 @@ then
     then
         GITLAB=1
     fi
-    
 fi
 
 if [ $GITLAB -eq 1 ]
@@ -182,29 +187,48 @@ if [[ -d "$IOC_NAME" ]] ; then
     exit 1
 fi
 
-mkdir "$IOC_NAME"
-cd "$IOC_NAME"
-
-git init
-# ssh
-git remote add xxx git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}
-# https
-#git remote add xxx https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git
-
-git fetch xxx
-git fetch xxx --tags
-git checkout master
-
-git branch --unset-upstream
-
-${SYNAPPS_LOCATION}/support/utils/changePrefix xxx $IOC_NAME
-
-sed -i -e "s|SUPPORT=.*\$|SUPPORT=${SYNAPPS_LOCATION}/support|g" configure/RELEASE
-
-git add ${IOC_NAME}App
-git add --ignore-removal iocBoot/*
-git add --all :/
-git commit -m "setup"
+if [ $FRESH_REPO -eq 0 ]
+then
+    mkdir "$IOC_NAME"
+    cd "$IOC_NAME"
+    
+    git init
+    # ssh
+    git remote add xxx git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}
+    # https
+    #git remote add xxx https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git
+    
+    git fetch xxx
+    git fetch xxx --tags
+    git checkout master
+    
+    git branch --unset-upstream
+    
+    ${SYNAPPS_LOCATION}/support/utils/changePrefix xxx $IOC_NAME
+    
+    sed -i -e "s|SUPPORT=.*\$|SUPPORT=${SYNAPPS_LOCATION}/support|g" configure/RELEASE
+    
+    git add ${IOC_NAME}App
+    git add --ignore-removal iocBoot/*
+    git add --all :/
+    git commit -m "setup"
+else
+    ## This approach was used by makeIOC.sh
+    # ssh
+    git clone git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION} $IOC_NAME
+    # https
+    #git clone https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git $IOC_NAME
+    cd ${IOC_NAME}
+    
+    ${SYNAPPS_LOCATION}/support/utils/changePrefix xxx $IOC_NAME
+    
+    sed -i -e "s|SUPPORT=.*\$|SUPPORT=${SYNAPPS_LOCATION}/support|g" configure/RELEASE
+    
+    rm -rf .git/
+    git init
+    git add .
+    git commit -am "Initial commit of $IOC_NAME after running changePrefix"
+fi
 
 ###
 ### Push to gitlab
@@ -227,7 +251,14 @@ then
         fi
     fi
     
-    git remote add gitlab git@git.aps.anl.gov:${GROUP_NAME}/${LOW_CASE}.git
-    git push --set-upstream gitlab master
+    if [ $FRESH_REPO -eq 0 ]
+    then
+        git remote add gitlab git@git.aps.anl.gov:${GROUP_NAME}/${LOW_CASE}.git
+        git push --set-upstream gitlab master
+    else
+        git remote add origin git@git.aps.anl.gov:${GROUP_NAME}/${LOW_CASE}.git
+        git push --set-upstream origin master
+
+    fi
 fi
 
