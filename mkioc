@@ -194,9 +194,9 @@ then
     
     git init
     # ssh
-    #git remote add xxx git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}
+    git remote add xxx git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}
     # https
-    git remote add xxx https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git
+    #git remote add xxx https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git
     
     git fetch xxx
     git fetch xxx --tags
@@ -215,9 +215,9 @@ then
 else
     ## This approach was used by makeIOC.sh
     # ssh
-    #git clone git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION} $IOC_NAME
+    git clone git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION} $IOC_NAME
     # https
-    git clone https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git $IOC_NAME
+    #git clone https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git $IOC_NAME
     cd ${IOC_NAME}
     
     ${SYNAPPS_LOCATION}/support/utils/changePrefix xxx $IOC_NAME
