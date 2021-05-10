@@ -2,7 +2,7 @@
 
 VERSION="0.1.0"
 
-# Default synApps version
+#Default synApps version
 SYNAPPS_VERSION="6-1"
 
 function print_help
@@ -25,6 +25,7 @@ function print_version
 FRESH_REPO=0
 ASK_GITLAB=1 
 GITHUB=0
+ASK_SYNAPPS=1
 
 ###
 ### Parse command-line options
@@ -49,6 +50,7 @@ do
         
         s)
             SYNAPPS_VERSION=${OPTARG}
+			ASK_SYNAPPS=0
         ;;
 
         g)
@@ -81,6 +83,30 @@ IOC_NAME=$1
 ###
 ### Correct synApps version
 ###
+
+if [ $ASK_SYNAPPS -eq 1 ]
+then
+
+	CHECK_VERSION=$(basename $(realpath ..))
+
+	if [[ $CHECK_VERSION =~ synApps_[0-9_] ]]
+	then
+		SYNAPPS_VERSION=${CHECK_VERSION/synApps_/}
+	fi
+
+	echo "Use synApps tag: $SYNAPPS_VERSION?"
+	
+	read RESPONSE
+	
+	if [[ ! $RESPONSE =~ [Yy](es)* ]]
+    then
+        echo "Enter synApps tag to use: "
+		
+		read RESPONSE
+		
+		SYNAPPS_VERSION=$RESPONSE
+    fi
+fi
 
 #Allow both dash as well as underscores
 SYNAPPS_VERSION=${SYNAPPS_VERSION//_/-}
