@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VERSION="0.1.0"
+VERSION="1.0.0"
 
 #Default synApps version
 SYNAPPS_VERSION="6-1"
