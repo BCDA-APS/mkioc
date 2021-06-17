@@ -12,8 +12,8 @@ function print_help
     echo "-h            print this message"
     echo "-v            print the version"
     echo "-f            create a fresh git repo without an xxx remote"
-    echo "-g            default to creating gitlab repo and pushing ioc"
-    echo "-n            default to not creating gitlab repo and pushing ioc"
+    echo "-g            default to using gitlab to grab xxx and push ioc"
+    echo "-n            default to not using gitlab to grab xxx or push ioc"
     echo "-s <version>  use a specific synApps version"
 }
 
@@ -215,20 +215,28 @@ fi
 
 if [ $FRESH_REPO -eq 0 ]
 then
-    mkdir "$IOC_NAME"
-    cd "$IOC_NAME"
-    
-    git init
-    # ssh
-    git remote add xxx git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}
-    # https
-    #git remote add xxx https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git
-    
-    git fetch xxx
-    git fetch xxx --tags
-    git checkout master
-    
-    git branch --unset-upstream
+    if [ $GITLAB -eq 1 ]
+    then
+        mkdir "$IOC_NAME"
+        cd "$IOC_NAME"
+
+        git init
+        # ssh
+        git remote add xxx git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}
+        # https
+        #git remote add xxx https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git
+
+        git fetch xxx
+        git fetch xxx --tags
+        git checkout master
+
+        git branch --unset-upstream
+    else
+        cp "${SYNAPPS_LOCATION}/support/xxx-${XXX_VERSION}" "$IOC_NAME"
+	cd "$IOC_NAME"
+	
+	git branch --unset-upstream
+    fi
     
     ${SYNAPPS_LOCATION}/support/utils/changePrefix xxx $IOC_NAME
     
@@ -239,12 +247,19 @@ then
     git add --all :/
     git commit -m "setup"
 else
-    ## This approach was used by makeIOC.sh
-    # ssh
-    git clone git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION} $IOC_NAME
-    # https
-    #git clone https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git $IOC_NAME
-    cd ${IOC_NAME}
+    if [ $GITLAB -eq 1 ]
+    then
+
+        ## This approach was used by makeIOC.sh
+        # ssh
+        git clone git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION} $IOC_NAME
+        # https
+        #git clone https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git $IOC_NAME
+        cd ${IOC_NAME}
+    else
+        cp "${SYNAPPS_LOCATION}/support/xxx-${XXX_VERSION}" "$IOC_NAME"
+	cd "$IOC_NAME"
+    fi
     
     ${SYNAPPS_LOCATION}/support/utils/changePrefix xxx $IOC_NAME
     
