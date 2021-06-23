@@ -232,7 +232,7 @@ then
 
         git branch --unset-upstream
     else
-        cp "${SYNAPPS_LOCATION}/support/xxx-${XXX_VERSION}" "$IOC_NAME"
+        cp -r "${SYNAPPS_LOCATION}/support/xxx-${XXX_VERSION}" "$IOC_NAME"
 	cd "$IOC_NAME"
 	
 	git branch --unset-upstream
@@ -257,7 +257,7 @@ else
         #git clone https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git $IOC_NAME
         cd ${IOC_NAME}
     else
-        cp "${SYNAPPS_LOCATION}/support/xxx-${XXX_VERSION}" "$IOC_NAME"
+        cp -r "${SYNAPPS_LOCATION}/support/xxx-${XXX_VERSION}" "$IOC_NAME"
 	cd "$IOC_NAME"
     fi
     
