@@ -24,7 +24,7 @@ function print_version
 
 FRESH_REPO=0
 ASK_GITLAB=1 
-GITHUB=0
+GITLAB=0
 ASK_SYNAPPS=1
 
 ###
