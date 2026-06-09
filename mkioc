@@ -1,4 +1,5 @@
 #!/bin/bash
+# Requires bash 4+ for declare -l/-u case conversion
 
 VERSION="1.0.3"
 
@@ -89,7 +90,7 @@ then
 
 	CHECK_VERSION=$(basename $(realpath ..))
 
-	if [[ $CHECK_VERSION =~ synApps_[0-9_] ]]
+	if [[ $CHECK_VERSION =~ ^synApps_[0-9_]+$ ]]
 	then
 		SYNAPPS_VERSION=${CHECK_VERSION/synApps_/}
 	fi
@@ -98,7 +99,7 @@ then
 	
 	read RESPONSE
 	
-	if [[ ! $RESPONSE =~ [Yy](es)* ]]
+	if [[ ! $RESPONSE =~ ^[Yy](es)?$ ]]
     then
         echo "Enter synApps tag to use: "
 		
@@ -112,11 +113,11 @@ fi
 SYNAPPS_VERSION=${SYNAPPS_VERSION//_/-}
 
 #Remove leading R if user used github tag format
-SYNAPPS_VERSION=${SYNAPPS_VERSION//R/}
+SYNAPPS_VERSION=${SYNAPPS_VERSION#R}
 
 SYNAPPS_LOCATION="/APSshare/epics/synApps_${SYNAPPS_VERSION//-/_}"
 
-if [ ! -d $SYNAPPS_LOCATION ] ; then
+if [ ! -d "$SYNAPPS_LOCATION" ] ; then
     echo "Cannot find synApps version with tag: ${SYNAPPS_VERSION}"
     exit 1
 fi
@@ -135,7 +136,7 @@ then
     read RESPONSE
     
     #If yes, set GITLAB var
-    if [[ $RESPONSE =~ [Yy](es)* ]] ; 
+    if [[ $RESPONSE =~ ^[Yy](es)?$ ]] ; 
     then
         GITLAB=1
     fi
@@ -144,12 +145,10 @@ fi
 if [ $GITLAB -eq 1 ]
 then
 
-    TOKEN=`git config --global --get gitlab.token`
-    
-    if [[ $TOKEN = "error:"* ]] ; then
+    TOKEN=$(git config --global --get gitlab.token) || {
         echo "Gitlab token not found, run git config --global gitlab.token \"<TOKEN>\""
-        exit
-    fi
+        exit 1
+    }
     
     LOW_CASE=$IOC_NAME
     
@@ -169,7 +168,7 @@ then
     fi
 
     #Check if ioc prefix exists as group on gitlab
-    GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/groups/${GROUP_NAME}?private_token=${TOKEN}`
+    GROUP_EXISTENCE=$(curl --silent -H "Content-Type:application/json" -H "PRIVATE-TOKEN: ${TOKEN}" "https://git.aps.anl.gov/api/v4/groups/${GROUP_NAME}")
     
     if [[ ! $GROUP_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
         echo "No gitlab group found for Group: ${GROUP_NAME}"
@@ -178,7 +177,7 @@ then
         read RESPONSE
         
         #If yes, create group
-        if [[ $RESPONSE =~ [Yy](es)* ]] ; then
+        if [[ $RESPONSE =~ ^[Yy](es)?$ ]] ; then
         
             if [ -n "${SECTOR_NUM:+1}" ]; then
                 #Pretty print sector name
@@ -190,7 +189,7 @@ then
                 PPRINT=${GROUP_NAME}
             fi
                 
-            GROUP_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/groups?private_token=${TOKEN} -d "{ \"name\": \"${GROUP_NAME}\", \"path\": \"${GROUP_NAME}\", \"description\": \"${PPRINT}'s IOC's and other projects\", \"visibility\": \"internal\" }"`
+            GROUP_EXISTENCE=$(curl --silent -H "Content-Type:application/json" -H "PRIVATE-TOKEN: ${TOKEN}" "https://git.aps.anl.gov/api/v4/groups" -d "{ \"name\": \"${GROUP_NAME}\", \"path\": \"${GROUP_NAME}\", \"description\": \"${PPRINT}'s IOC's and other projects\", \"visibility\": \"internal\" }")
         fi
         
             #Then check regex again, if no to previous question, this will also exit
@@ -218,7 +217,7 @@ then
     if [ $GITLAB -eq 1 ]
     then
         mkdir "$IOC_NAME"
-        cd "$IOC_NAME"
+        cd "$IOC_NAME" || exit 1
 
         git init
         # ssh
@@ -230,14 +229,16 @@ then
         git fetch xxx --tags
         git checkout master
 
-        git branch --unset-upstream
+        git branch --unset-upstream 2>/dev/null || true
     else
         cp -r "${SYNAPPS_LOCATION}/support/xxx-${XXX_VERSION}" "$IOC_NAME"
-	cd "$IOC_NAME"
+	cd "$IOC_NAME" || exit 1
 	
-	git branch --unset-upstream
+	git branch --unset-upstream 2>/dev/null || true
 
-	make distclean
+	if [ -f Makefile ]; then
+		make distclean || echo "Warning: make distclean failed, continuing anyway"
+	fi
     fi
     
     ${SYNAPPS_LOCATION}/support/utils/changePrefix xxx $IOC_NAME
@@ -257,10 +258,10 @@ else
         git clone git@git.aps.anl.gov:synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION} $IOC_NAME
         # https
         #git clone https://git.aps.anl.gov/synApps_${SYNAPPS_VERSION//-/_}_Working/xxx-${XXX_VERSION}.git $IOC_NAME
-        cd ${IOC_NAME}
+        cd "${IOC_NAME}" || exit 1
     else
         cp -r "${SYNAPPS_LOCATION}/support/xxx-${XXX_VERSION}" "$IOC_NAME"
-	cd "$IOC_NAME"
+	cd "$IOC_NAME" || exit 1
     fi
     
     ${SYNAPPS_LOCATION}/support/utils/changePrefix xxx $IOC_NAME
@@ -273,13 +274,13 @@ else
     git commit -am "Initial commit of $IOC_NAME after running changePrefix"
 fi
 
-cd iocBoot/ioc${IOC_NAME}
-chmod a+w autosave
-chmod a+w bootParms
-chmod a+w softioc
-chmod a+w softioc/logs/iocConsole
-chmod a+w softioc/logs/remote
-cd ../..
+cd "iocBoot/ioc${IOC_NAME}" || exit 1
+[ -d autosave ]              && chmod a+w autosave
+[ -d bootParms ]             && chmod a+w bootParms
+[ -d softioc ]               && chmod a+w softioc
+[ -d softioc/logs/iocConsole ] && chmod a+w softioc/logs/iocConsole
+[ -d softioc/logs/remote ]   && chmod a+w softioc/logs/remote
+cd ../.. || exit 1
 
 ###
 ### Push to gitlab
@@ -288,17 +289,17 @@ cd ../..
 if [ $GITLAB -eq 1 ]
 then
     #Create repository on gitlab if it doesn't exist
-    REPO_EXISTENCE=`curl --silent -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects/${GROUP_NAME}%2F${IOC_NAME}?private_token=${TOKEN}`
+    REPO_EXISTENCE=$(curl --silent -H "Content-Type:application/json" -H "PRIVATE-TOKEN: ${TOKEN}" "https://git.aps.anl.gov/api/v4/projects/${GROUP_NAME}%2F${IOC_NAME}")
     
     if [[ ! $REPO_EXISTENCE =~ \"id\".([0-9]+) ]] ; then
-        curl -H "Content-Type:application/json" https://git.aps.anl.gov/api/v4/projects?private_token=${TOKEN} -d "{ \"name\": \"$IOC_NAME\", \"namespace_id\": ${GROUP_ID}, \"visibility\": \"internal\" }"
+        curl -H "Content-Type:application/json" -H "PRIVATE-TOKEN: ${TOKEN}" "https://git.aps.anl.gov/api/v4/projects" -d "{ \"name\": \"$IOC_NAME\", \"namespace_id\": ${GROUP_ID}, \"visibility\": \"internal\" }"
     else
         echo "Gitlab project already exists, overwrite?"
     
         read RESPONSE
     
-        if [[ $RESPONSE =~ [Nn](o)* ]] ; then
-            exit
+        if [[ ! $RESPONSE =~ ^[Yy](es)?$ ]] ; then
+            exit 1
         fi
     fi
     
